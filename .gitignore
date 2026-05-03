@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Environment variables (NEVER upload to GitHub)
+.env
+
+# Local image uploads (Prevents pushing local multer test images)
+uploads/
+
+# OS and temporary files
+.DS_Store
+npm-debug.log*
