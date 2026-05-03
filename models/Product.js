@@ -22,7 +22,14 @@ const ProductSchema = new mongoose.Schema({
       inStock: { type: Boolean, default: true }
     }
   ],
-  weight: { type: String }
+  sizes: [
+    {
+      weight: { type: String, required: true },
+      price: { type: Number, required: true },
+      oldPrice: { type: Number },
+      allowedFlavors: [String]
+    }
+  ]
 });
 
 module.exports = mongoose.model('Product', ProductSchema);

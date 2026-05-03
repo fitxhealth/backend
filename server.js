@@ -3,7 +3,6 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
-const fs = require('fs');
 
 // Load env vars
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -22,6 +21,7 @@ app.use(cors({
   origin: [
     'http://localhost:5500',
     'http://127.0.0.1:5500',
+    'null', // Allows local file:/// testing
     process.env.FRONTEND_URL || 'https://living-resultm.vercel.app'
   ],
   credentials: true
@@ -40,12 +40,6 @@ app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
-
-// Create and serve the uploads folder statically so images can be viewed
-if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
-  fs.mkdirSync(path.join(__dirname, 'uploads'));
-}
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
