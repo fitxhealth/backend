@@ -9,6 +9,7 @@ const ProductSchema = new mongoose.Schema({
   discount: { type: Number },
   rating: { type: Number, default: 5 },
   reviews: { type: Number, default: 0 },
+  numReviews: { type: Number, default: 0 },
   bestSeller: { type: Boolean, default: false },
   category: { type: String, required: true, enum: ['common', 'unique', 'combos'] },
   stockLeft: { type: Number, default: 10 },
@@ -28,6 +29,14 @@ const ProductSchema = new mongoose.Schema({
       price: { type: Number, required: true },
       oldPrice: { type: Number },
       allowedFlavors: [String]
+    }
+  ],
+  reviewList: [
+    {
+      name: { type: String, required: true },
+      rating: { type: Number, required: true },
+      comment: { type: String, required: true },
+      createdAt: { type: Date, default: Date.now }
     }
   ]
 });

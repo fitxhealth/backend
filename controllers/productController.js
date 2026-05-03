@@ -61,6 +61,57 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
+// @desc    Create new review
+// @route   POST /api/products/:id/reviews
+exports.addProductReview = async (req, res) => {
+  try {
+    const { rating, comment, name } = req.body;
+    const product = await Product.findById(req.params.id);
+
+    if (product) {
+      const review = {
+        name: name,
+        rating: Number(rating),
+        comment: comment,
+      };
+
+      product.reviewList.push(review);
+      product.numReviews = product.reviewList.length;
+      product.rating = product.reviewList.reduce((acc, item) => item.rating + acc, 0) / product.reviewList.length;
+
+      await product.save();
+      res.status(201).json({ success: true, message: 'Review added' });
+    } else {
+      res.status(404).json({ success: false, message: 'Product not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete a review (Admin)
+// @route   DELETE /api/products/:id/reviews/:reviewId
+exports.deleteProductReview = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+    // Filter out the review matching the ID
+    product.reviewList = product.reviewList.filter(r => r._id.toString() !== req.params.reviewId);
+    
+    // Recalculate totals
+    product.numReviews = product.reviewList.length;
+    product.rating = product.numReviews > 0 
+      ? product.reviewList.reduce((acc, item) => item.rating + acc, 0) / product.numReviews 
+      : 5; // Default back to 5 stars if empty
+
+    await product.save();
+    res.status(200).json({ success: true, message: 'Review deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Seed products to DB (Dev only)
 // @route   POST /api/products/seed
 exports.seedProducts = async (req, res) => {
