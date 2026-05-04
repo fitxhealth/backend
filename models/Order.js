@@ -1,43 +1,33 @@
 const mongoose = require('mongoose');
 
-const OrderSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+const orderSchema = new mongoose.Schema({
+  orderId: {
+    type: String,
+    required: true,
+    unique: true
   },
-  items: [
-    {
-      productId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product'
-      },
-      name: String,
-      price: Number,
-      flavorIndex: Number,
-      flavorName: String,
-      quantity: Number
-    }
-  ],
-  amount: {
+  customerDetails: {
+    name: { type: String, required: true },
+    phone: { type: String, required: true },
+    address: { type: String, required: true }
+  },
+  products: [{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    name: { type: String, required: true },
+    flavor: { type: String, required: true },
+    weight: { type: String }, // Optional: some simple products might not have a weight
+    quantity: { type: Number, required: true, min: 1 },
+    price: { type: Number, required: true }
+  }],
+  totalAmount: {
     type: Number,
     required: true
   },
   status: {
     type: String,
-    enum: ['Pending', 'Paid', 'Failed'],
-    default: 'Pending'
-  },
-  paymentId: {
-    type: String
-  },
-  razorpayOrderId: {
-    type: String
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
+    enum: ['pending', 'confirmed', 'cancelled'],
+    default: 'pending'
   }
-});
+}, { timestamps: true });
 
-module.exports = mongoose.model('Order', OrderSchema);
+module.exports = mongoose.model('Order', orderSchema);

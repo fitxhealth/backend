@@ -31,6 +31,18 @@ const ProductSchema = new mongoose.Schema({
       allowedFlavors: [String]
     }
   ],
+
+  // --- NEW: VARIANT LEVEL INVENTORY ---
+  // This tracks the exact stock for specific flavor + weight combinations
+  variants: [
+    {
+      flavor: { type: String, required: true },
+      weight: { type: String }, // E.g., '1 kg', '2 kg' (Optional for products with no size)
+      availableStock: { type: Number, required: true, default: 0 }
+    }
+  ],
+  // ------------------------------------
+
   reviewList: [
     {
       name: { type: String, required: true },

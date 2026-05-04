@@ -35,6 +35,8 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 
+const orderRoutes = require('./routes/orderRoutes');
+
 // Mount routers
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -42,6 +44,8 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingRoutes);
+
+app.use('/api/orders', orderRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

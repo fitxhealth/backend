@@ -18,6 +18,8 @@ exports.signup = async (req, res) => {
   });
 };
 
+
+
 // @desc    Authenticate a user
 // @route   POST /api/auth/login
 exports.login = async (req, res) => {
