@@ -1,20 +1,58 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const { protect, admin } = require('../middleware/authMiddleware');
 
 // 1. CREATE A PENDING ORDER (Triggered from Frontend before WhatsApp opens)
 router.post('/', async (req, res) => {
     try {
-        const { customerDetails, products, totalAmount } = req.body;
+        const { customerDetails, products } = req.body;
 
-        // Generate a clean, readable Order ID (e.g., LR-104938)
-        const orderId = 'LR-' + Math.floor(100000 + Math.random() * 900000);
+        if (!customerDetails || !customerDetails.name || !customerDetails.phone || !customerDetails.address) {
+            return res.status(400).json({ success: false, message: 'Missing required customer details' });
+        }
+
+        if (!Array.isArray(products) || products.length === 0) {
+            return res.status(400).json({ success: false, message: 'Order must contain at least one product' });
+        }
+
+        const orderId = `LR-${Date.now()}-${crypto.randomInt(1000, 9999)}`;
+        let totalAmount = 0;
+        const sanitizedProducts = [];
+
+        for (const item of products) {
+            if (!item.productId || !item.quantity || Number(item.quantity) <= 0) {
+                return res.status(400).json({ success: false, message: 'Invalid order item payload' });
+            }
+
+            const product = await Product.findById(item.productId);
+            if (!product) {
+                return res.status(404).json({ success: false, message: `Product not found: ${item.productId}` });
+            }
+
+            const qty = Number(item.quantity);
+            const sizeMatch = item.weight
+                ? product.sizes.find((size) => size.weight === item.weight)
+                : null;
+            const unitPrice = sizeMatch ? Number(sizeMatch.price) : Number(product.price);
+
+            totalAmount += unitPrice * qty;
+            sanitizedProducts.push({
+                productId: product._id,
+                name: product.name,
+                flavor: item.flavor || 'Default',
+                weight: item.weight || '',
+                quantity: qty,
+                price: unitPrice
+            });
+        }
 
         const newOrder = new Order({
             orderId,
             customerDetails,
-            products,
+            products: sanitizedProducts,
             totalAmount,
             status: 'pending' // Defaults to pending until Admin confirms
         });
@@ -27,7 +65,7 @@ router.post('/', async (req, res) => {
 });
 
 // 2. GET ALL ORDERS (For the Admin Dashboard)
-router.get('/', async (req, res) => {
+router.get('/', protect, admin, async (req, res) => {
     try {
         const orders = await Order.find().sort({ createdAt: -1 });
         res.status(200).json({ success: true, data: orders });
@@ -37,7 +75,7 @@ router.get('/', async (req, res) => {
 });
 
 // 3. CONFIRM ORDER & DEDUCT VARIANT STOCK (Admin Action)
-router.put('/:id/confirm', async (req, res) => {
+router.put('/:id/confirm', protect, admin, async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
 
@@ -70,6 +108,10 @@ router.put('/:id/confirm', async (req, res) => {
                 product.stockLeft -= item.quantity;
             }
 
+            // Analytics metrics: confirmed conversion + realized revenue
+            product.confirmedSales = Number(product.confirmedSales || 0) + Number(item.quantity || 0);
+            product.confirmedRevenue = Number(product.confirmedRevenue || 0) + (Number(item.price || 0) * Number(item.quantity || 0));
+
             await product.save();
         }
 
@@ -84,7 +126,7 @@ router.put('/:id/confirm', async (req, res) => {
 });
 
 // 4. CANCEL ORDER (Admin Action)
-router.put('/:id/cancel', async (req, res) => {
+router.put('/:id/cancel', protect, admin, async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
         if (!order) return res.status(404).json({ success: false, message: 'Order not found' });

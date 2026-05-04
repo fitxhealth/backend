@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { getSettings, updateSettings, getSiteVersion, incrementSiteVersion } = require('../controllers/settingController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, admin } = require('../middleware/authMiddleware');
 
 router.route('/version')
     .get(getSiteVersion);
 
 router.route('/version/increment')
-    .put(protect, incrementSiteVersion);
+    .put(protect, admin, incrementSiteVersion);
 
 router.route('/')
     .get(getSettings)
-    .put(protect, updateSettings);
+    .put(protect, admin, updateSettings);
 
 module.exports = router;

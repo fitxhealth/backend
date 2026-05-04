@@ -3,6 +3,17 @@ const crypto = require('crypto');
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 
+const ensureRazorpayEnabled = (res) => {
+  if (process.env.ENABLE_RAZORPAY !== 'true') {
+    res.status(503).json({
+      success: false,
+      message: 'Online payment is currently disabled. Please use WhatsApp checkout.'
+    });
+    return false;
+  }
+  return true;
+};
+
 // Initialize Razorpay
 const getRazorpayInstance = () => {
   return new Razorpay({
@@ -15,6 +26,7 @@ const getRazorpayInstance = () => {
 // @route   POST /api/payment/create-order
 exports.createOrder = async (req, res) => {
   try {
+    if (!ensureRazorpayEnabled(res)) return;
     const { amount, items } = req.body;
 
     if (!amount || amount <= 0) {
@@ -35,13 +47,28 @@ exports.createOrder = async (req, res) => {
       return res.status(500).json({ success: false, message: 'Some error occurred with Razorpay' });
     }
 
-    // Save initial pending order to DB
+    const orderProducts = Array.isArray(items)
+      ? items.map((item) => ({
+          productId: item.productId,
+          name: item.name || 'Product',
+          flavor: item.flavor || 'Default',
+          weight: item.weight || '',
+          quantity: Number(item.quantity) || 1,
+          price: Number(item.price) || 0
+        }))
+      : [];
+
+    // Save initial pending order to DB using current Order model shape
     const newOrder = await Order.create({
-      userId: req.user.id,
-      items,
-      amount,
-      razorpayOrderId: razorpayOrder.id,
-      status: 'Pending',
+      orderId: `RZP-${Date.now()}`,
+      customerDetails: {
+        name: req.body?.customerDetails?.name || req.user.name || 'Customer',
+        phone: req.body?.customerDetails?.phone || 'N/A',
+        address: req.body?.customerDetails?.address || 'N/A'
+      },
+      products: orderProducts,
+      totalAmount: Number(amount),
+      status: 'pending'
     });
 
     res.status(200).json({
@@ -62,6 +89,7 @@ exports.createOrder = async (req, res) => {
 // @route   POST /api/payment/verify
 exports.verifyPayment = async (req, res) => {
   try {
+    if (!ensureRazorpayEnabled(res)) return;
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, dbOrderId } = req.body;
 
     const sign = razorpay_order_id + '|' + razorpay_payment_id;
@@ -75,7 +103,7 @@ exports.verifyPayment = async (req, res) => {
       // Update order status
       const order = await Order.findById(dbOrderId);
       if (order) {
-        order.status = 'Paid';
+        order.status = 'confirmed';
         order.paymentId = razorpay_payment_id;
         await order.save();
 
@@ -101,5 +129,6 @@ exports.verifyPayment = async (req, res) => {
 // @desc    Get Razorpay Config
 // @route   GET /api/payment/config
 exports.getConfig = async (req, res) => {
+  if (!ensureRazorpayEnabled(res)) return;
   res.status(200).json({ success: true, key: process.env.RAZORPAY_KEY_ID });
 };

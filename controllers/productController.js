@@ -11,6 +11,55 @@ exports.getProducts = async (req, res) => {
   }
 };
 
+// @desc    Track product view/click engagement
+// @route   POST /api/products/:id/view
+exports.trackProductView = async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { viewCount: 1 } },
+      { new: true }
+    ).select('_id viewCount');
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    return res.status(200).json({ success: true, data: product });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get product conversion performance metrics
+// @route   GET /api/products/analytics/performance
+exports.getProductPerformance = async (req, res) => {
+  try {
+    const products = await Product.find({})
+      .select('name slug viewCount confirmedSales confirmedRevenue')
+      .sort({ viewCount: -1 });
+
+    const performance = products.map((product) => {
+      const views = Number(product.viewCount || 0);
+      const sales = Number(product.confirmedSales || 0);
+      const conversionRate = views > 0 ? (sales / views) * 100 : 0;
+      return {
+        _id: product._id,
+        name: product.name,
+        slug: product.slug,
+        viewCount: views,
+        confirmedSales: sales,
+        confirmedRevenue: Number(product.confirmedRevenue || 0),
+        conversionRate: Number(conversionRate.toFixed(2))
+      };
+    });
+
+    return res.status(200).json({ success: true, count: performance.length, data: performance });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Get single product by slug
 // @route   GET /api/products/:slug
 exports.getProductBySlug = async (req, res) => {
@@ -116,6 +165,9 @@ exports.deleteProductReview = async (req, res) => {
 // @route   POST /api/products/seed
 exports.seedProducts = async (req, res) => {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ success: false, message: 'Seeding is disabled in production' });
+    }
     const products = req.body;
     await Product.deleteMany();
     const createdProducts = await Product.insertMany(products);

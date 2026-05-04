@@ -19,6 +19,10 @@ exports.getCart = async (req, res) => {
 exports.addToCart = async (req, res) => {
   try {
     const { productId, flavorIndex, quantity } = req.body;
+    const qty = Number(quantity || 1);
+    if (!productId || Number.isNaN(qty) || qty < 1 || qty > 99) {
+      return res.status(400).json({ success: false, message: 'Invalid cart item payload' });
+    }
 
     let cart = await Cart.findOne({ userId: req.user.id });
 
@@ -32,9 +36,9 @@ exports.addToCart = async (req, res) => {
     );
 
     if (itemIndex > -1) {
-      cart.items[itemIndex].quantity += quantity || 1;
+      cart.items[itemIndex].quantity = Math.min(99, cart.items[itemIndex].quantity + qty);
     } else {
-      cart.items.push({ productId, flavorIndex, quantity: quantity || 1 });
+      cart.items.push({ productId, flavorIndex, quantity: qty });
     }
 
     await cart.save();
@@ -52,6 +56,10 @@ exports.updateCartItem = async (req, res) => {
   try {
     const { quantity } = req.body;
     const { productId, flavorIndex } = req.params;
+    const qty = Number(quantity);
+    if (Number.isNaN(qty) || qty < 0 || qty > 99) {
+      return res.status(400).json({ success: false, message: 'Quantity must be between 0 and 99' });
+    }
 
     let cart = await Cart.findOne({ userId: req.user.id });
     if (!cart) return res.status(404).json({ success: false, message: 'Cart not found' });
@@ -61,10 +69,10 @@ exports.updateCartItem = async (req, res) => {
     );
 
     if (itemIndex > -1) {
-      if (quantity <= 0) {
+      if (qty <= 0) {
         cart.items.splice(itemIndex, 1);
       } else {
-        cart.items[itemIndex].quantity = quantity;
+        cart.items[itemIndex].quantity = qty;
       }
       await cart.save();
       cart = await Cart.findOne({ userId: req.user.id }).populate('items.productId');

@@ -3,10 +3,45 @@ node_modules/
 
 # Environment variables (NEVER upload to GitHub)
 .env
+.env.*
 
 # Local image uploads (Prevents pushing local multer test images)
 uploads/
+coverage/
 
 # OS and temporary files
 .DS_Store
 npm-debug.log*
+*.log
+*.tmp
+*.temp
+
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Environment files
+.env
+.env.*
+backend/.env
+backend/.env.*
+
+# Logs and OS junk
+*.log
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Sensitive credentials and personal documents
+admin id pass*
+data base user id pass*
+DEPLOYMENT_GUIDE*
+razorpay_test_api_keys*
+ROADMAP*
+URL QR Code*
+
+# Local uploads and runtime artifacts
+uploads/
+backend/uploads/
+coverage/

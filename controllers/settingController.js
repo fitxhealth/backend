@@ -12,7 +12,7 @@ exports.getSettings = async (req, res) => {
             return acc;
         }, {});
         res.status(200).json({ success: true, data: settingsObject });
-    } catch (error) {
+    } catch {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
@@ -23,11 +23,19 @@ exports.getSettings = async (req, res) => {
 exports.updateSettings = async (req, res) => {
     try {
         const { noticeStrip } = req.body;
+        if (
+            !noticeStrip ||
+            typeof noticeStrip.text !== 'string' ||
+            typeof noticeStrip.enabled !== 'boolean' ||
+            noticeStrip.text.length > 200
+        ) {
+            return res.status(400).json({ success: false, message: 'Invalid noticeStrip payload' });
+        }
 
         // Use findOneAndUpdate with upsert:true to create if it doesn't exist
         await Setting.findOneAndUpdate({ key: 'noticeStrip' }, { key: 'noticeStrip', value: noticeStrip }, { upsert: true });
         res.status(200).json({ success: true, message: 'Settings updated successfully' });
-    } catch (error) {
+    } catch {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
@@ -40,7 +48,7 @@ exports.getSiteVersion = async (req, res) => {
         const versionSetting = await Setting.findOne({ key: 'siteVersion' });
         const version = versionSetting ? versionSetting.value : 1;
         res.status(200).json({ success: true, version });
-    } catch (error) {
+    } catch {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
@@ -57,7 +65,7 @@ exports.incrementSiteVersion = async (req, res) => {
         }
         await Setting.findOneAndUpdate({ key: 'siteVersion' }, { key: 'siteVersion', value: newVersion }, { upsert: true });
         res.status(200).json({ success: true, message: 'Site version incremented', newVersion });
-    } catch (error) {
+    } catch {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };

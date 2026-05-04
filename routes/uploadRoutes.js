@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('cloudinary').v2;
-const { protect } = require('../middleware/authMiddleware');
+const { protect, admin } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 cloudinary.config({
@@ -19,11 +19,21 @@ const storage = new CloudinaryStorage({
     }
 });
 
-const upload = multer({ storage: storage });
+const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+            return cb(new Error('Unsupported file type. Upload jpg, png, or webp only.'));
+        }
+        return cb(null, true);
+    }
+});
 
 // @route   POST /api/upload
 // @desc    Upload an image file
-router.post('/', protect, upload.single('image'), (req, res) => {
+router.post('/', protect, admin, upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ success: false, message: 'No image uploaded' });
     res.json({ success: true, imageUrl: req.file.path });
 });
