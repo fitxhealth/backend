@@ -64,6 +64,7 @@ exports.createOrder = async (req, res) => {
       customerDetails: {
         name: req.body?.customerDetails?.name || req.user.name || 'Customer',
         phone: req.body?.customerDetails?.phone || 'N/A',
+        email: req.body?.customerDetails?.email || 'N/A',
         address: req.body?.customerDetails?.address || 'N/A'
       },
       products: orderProducts,

@@ -10,7 +10,7 @@ router.post('/', async (req, res) => {
     try {
         const { customerDetails, products } = req.body;
 
-        if (!customerDetails || !customerDetails.name || !customerDetails.phone || !customerDetails.address) {
+        if (!customerDetails || !customerDetails.name || !customerDetails.phone || !customerDetails.email || !customerDetails.address) {
             return res.status(400).json({ success: false, message: 'Missing required customer details' });
         }
 
