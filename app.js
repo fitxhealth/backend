@@ -11,6 +11,10 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 
+const Product = require('./models/Product');
+const Order = require('./models/Order');
+const { protect, admin } = require('./middleware/authMiddleware');
+
 const app = express();
 
 const allowedOrigins = [
@@ -70,9 +74,20 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/orders', orderRoutes);
 
+// Dedicated route for resetting analytics and orders
+app.delete('/api/admin/reset-data', protect, admin, async (req, res) => {
+  try {
+    await Product.updateMany({}, { $set: { viewCount: 0, confirmedSales: 0, confirmedRevenue: 0 } });
+    await Order.deleteMany({});
+    res.status(200).json({ success: true, message: 'Analytics and Orders reset successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 app.use((err, req, res, _next) => {
-  console.error(err.stack);
-  res.status(500).json({ success: false, message: 'Server Error' });
+  console.error("Global Error Handler:", err.stack);
+  res.status(500).json({ success: false, message: err.message || 'Server Error' });
 });
 
 module.exports = app;
