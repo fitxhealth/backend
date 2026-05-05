@@ -22,18 +22,19 @@ exports.getSettings = async (req, res) => {
 // @access  Private (Admin)
 exports.updateSettings = async (req, res) => {
     try {
-        const { noticeStrip } = req.body;
-        if (
-            !noticeStrip ||
-            typeof noticeStrip.text !== 'string' ||
-            typeof noticeStrip.enabled !== 'boolean' ||
-            noticeStrip.text.length > 200
-        ) {
-            return res.status(400).json({ success: false, message: 'Invalid noticeStrip payload' });
+        const { noticeStrip, isLaunched } = req.body;
+
+        if (noticeStrip) {
+            if (typeof noticeStrip.text !== 'string' || typeof noticeStrip.enabled !== 'boolean' || noticeStrip.text.length > 200) {
+                return res.status(400).json({ success: false, message: 'Invalid noticeStrip payload' });
+            }
+            await Setting.findOneAndUpdate({ key: 'noticeStrip' }, { key: 'noticeStrip', value: noticeStrip }, { upsert: true });
         }
 
-        // Use findOneAndUpdate with upsert:true to create if it doesn't exist
-        await Setting.findOneAndUpdate({ key: 'noticeStrip' }, { key: 'noticeStrip', value: noticeStrip }, { upsert: true });
+        if (typeof isLaunched === 'boolean') {
+            await Setting.findOneAndUpdate({ key: 'isLaunched' }, { key: 'isLaunched', value: isLaunched }, { upsert: true });
+        }
+
         res.status(200).json({ success: true, message: 'Settings updated successfully' });
     } catch {
         res.status(500).json({ success: false, message: 'Server Error' });
