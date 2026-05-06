@@ -13,6 +13,7 @@ const ProductSchema = new mongoose.Schema({
   bestSeller: { type: Boolean, default: false },
   category: { type: String, required: true, enum: ['common', 'unique', 'combos'] },
   stockLeft: { type: Number, default: 10 },
+  showScarcity: { type: Boolean, default: true },
   viewCount: { type: Number, default: 0 },
   confirmedSales: { type: Number, default: 0 },
   confirmedRevenue: { type: Number, default: 0 },
@@ -31,7 +32,8 @@ const ProductSchema = new mongoose.Schema({
       weight: { type: String, required: true },
       price: { type: Number, required: true },
       oldPrice: { type: Number },
-      allowedFlavors: [String]
+      allowedFlavors: [String],
+      inStock: { type: Boolean, default: true }
     }
   ],
 
