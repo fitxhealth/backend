@@ -5,7 +5,7 @@ const SettingSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        enum: ['noticeStrip', 'siteVersion', 'isLaunched'] // Added isLaunched for investor launch
+        enum: ['noticeStrip', 'siteVersion', 'isLaunched'] // For site launch control
     },
     value: {
         type: mongoose.Schema.Types.Mixed,
