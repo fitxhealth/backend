@@ -24,7 +24,7 @@ router.post('/:id/view', trackProductView);
 
 router.get('/:slug', getProductBySlug);
 
-router.route('/:id/reviews').post(protect, addProductReview);
+router.route('/:id/reviews').post(addProductReview);
 router.route('/:id/reviews/:reviewId').delete(protect, admin, deleteProductReview);
 
 router.route('/:id')

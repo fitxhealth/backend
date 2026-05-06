@@ -114,7 +114,7 @@ exports.deleteProduct = async (req, res) => {
 // @route   POST /api/products/:id/reviews
 exports.addProductReview = async (req, res) => {
   try {
-    const { rating, comment, name } = req.body;
+    const { name, rating, comment } = req.body;
     const product = await Product.findById(req.params.id);
 
     if (product) {
