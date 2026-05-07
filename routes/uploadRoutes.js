@@ -15,7 +15,8 @@ const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
         folder: 'living-result',
-        allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif']
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+        transformation: [{ quality: 'auto', fetch_format: 'auto' }]
     }
 });
 
