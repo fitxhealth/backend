@@ -60,6 +60,31 @@ app.use(rateLimit({
   legacyHeaders: false
 }));
 
+// DYNAMIC SITEMAP.XML
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const products = await Product.find({}).select('slug');
+    const baseUrl = 'https://www.getlivingresult.in';
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+    // Home page
+    xml += `  <url><loc>${baseUrl}/</loc><priority>1.0</priority></url>\n`;
+
+    // Product pages
+    products.forEach(product => {
+      xml += `  <url><loc>${baseUrl}/product.html?slug=${product.slug}</loc><priority>0.8</priority></url>\n`;
+    });
+
+    xml += `</urlset>`;
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
+  } catch (error) {
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
