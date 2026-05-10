@@ -81,7 +81,10 @@ exports.getCombos = async (req, res) => {
                 manualOverridePrice: combo.manualOverridePrice,
                 finalPrice: finalPrice > 0 ? finalPrice : autoPrice,
                 totalSavings: totalSavings,
-                totalWeight: { grams: totalGrams, display: displayWeight }
+                totalWeight: { grams: totalGrams, display: displayWeight },
+                sizes: combo.sizes || [],
+                images: combo.images || [],
+                flavors: combo.flavors || []
             };
         });
 
