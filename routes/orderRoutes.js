@@ -64,6 +64,25 @@ router.post('/', async (req, res) => {
     }
 });
 
+// GET RECENT CONFIRMED ORDERS (Public - For Social Proof)
+router.get('/recent', async (req, res) => {
+    try {
+        const orders = await Order.find({ status: 'confirmed' })
+            .sort({ updatedAt: -1 })
+            .limit(8);
+        
+        const recentOrders = orders.map(o => {
+            const firstName = o.customerDetails?.name?.split(' ')[0] || 'Someone';
+            const productName = o.products && o.products.length > 0 ? o.products[0].name : 'some items';
+            return `${firstName} just secured ${productName}`;
+        });
+
+        res.status(200).json({ success: true, data: recentOrders });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // 2. GET ALL ORDERS (For the Admin Dashboard)
 router.get('/', protect, admin, async (req, res) => {
     try {
