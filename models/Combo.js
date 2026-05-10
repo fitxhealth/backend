@@ -12,6 +12,21 @@ const comboSchema = new mongoose.Schema({
     quantity: { type: Number, required: true, min: 1, default: 1 }
   }],
   
+  // Variant & Visuals (Matches Product structure)
+  sizes: [{
+      weight: String,
+      price: Number,
+      oldPrice: Number,
+      allowedFlavors: [String],
+      inStock: { type: Boolean, default: true }
+  }],
+  images: [{ type: String }],
+  flavors: [{
+      name: String,
+      image: String,
+      inStock: { type: Boolean, default: true }
+  }],
+
   // Pricing & Metrics
   manualOverridePrice: { type: Number },
   isPublished: { type: Boolean, default: true },
