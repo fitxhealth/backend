@@ -22,7 +22,7 @@ exports.getSettings = async (req, res) => {
 // @access  Private (Admin)
 exports.updateSettings = async (req, res) => {
     try {
-        const { noticeStrip, isLaunched } = req.body;
+        const { noticeStrip, isLaunched, fomo } = req.body;
 
         if (noticeStrip) {
             if (typeof noticeStrip.text !== 'string' || typeof noticeStrip.enabled !== 'boolean' || noticeStrip.text.length > 200) {
@@ -33,6 +33,10 @@ exports.updateSettings = async (req, res) => {
 
         if (typeof isLaunched === 'boolean') {
             await Setting.findOneAndUpdate({ key: 'isLaunched' }, { key: 'isLaunched', value: isLaunched }, { upsert: true });
+        }
+        
+        if (fomo) {
+            await Setting.findOneAndUpdate({ key: 'fomo' }, { key: 'fomo', value: fomo }, { upsert: true });
         }
 
         res.status(200).json({ success: true, message: 'Settings updated successfully' });
