@@ -5,7 +5,7 @@ const SettingSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        enum: ['noticeStrip', 'siteVersion', 'isLaunched'] // For site launch control
+        enum: ['noticeStrip', 'siteVersion', 'isLaunched', 'fomo'] // For site launch control and FOMO
     },
     value: {
         type: mongoose.Schema.Types.Mixed,
