@@ -2,6 +2,8 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
+const Product = require('../models/Product');
+const Combo = require('../models/Combo');
 
 const ensureRazorpayEnabled = (res) => {
   if (process.env.ENABLE_RAZORPAY !== 'true') {
@@ -29,14 +31,50 @@ exports.createOrder = async (req, res) => {
     if (!ensureRazorpayEnabled(res)) return;
     const { amount, items } = req.body;
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ success: false, message: 'Invalid amount' });
+    // SECURE PRICING: Calculate total on the backend
+    let calculatedTotal = 0;
+    const sanitizedProducts = [];
+
+    if (Array.isArray(items)) {
+      for (const item of items) {
+        const qty = Number(item.quantity) || 1;
+        
+        if (item.isCombo && item.comboId) {
+          const combo = await Combo.findById(item.comboId);
+          if (combo) {
+            let comboPrice = combo.manualOverridePrice || 0;
+            if (!combo.manualOverridePrice) {
+              for (let cProd of combo.products) {
+                const dbProd = await Product.findById(cProd.productId);
+                if (dbProd) {
+                  const basePrice = dbProd.sizes?.length > 0 ? dbProd.sizes[0].price : dbProd.price;
+                  comboPrice += basePrice * cProd.quantity;
+                }
+              }
+            }
+            calculatedTotal += comboPrice * qty;
+            sanitizedProducts.push({ ...item, price: comboPrice });
+          }
+        } else if (item.productId) {
+          const product = await Product.findById(item.productId);
+          if (product) {
+            const sizeMatch = item.weight ? product.sizes.find(s => s.weight === item.weight) : null;
+            const unitPrice = sizeMatch ? Number(sizeMatch.price) : Number(product.price);
+            calculatedTotal += unitPrice * qty;
+            sanitizedProducts.push({ ...item, price: unitPrice });
+          }
+        }
+      }
+    }
+
+    if (calculatedTotal <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid order items or amount' });
     }
 
     const instance = getRazorpayInstance();
     
     const options = {
-      amount: amount * 100, // Razorpay amount is in paise
+      amount: calculatedTotal * 100, // Razorpay amount is in paise
       currency: 'INR',
       receipt: `receipt_order_${Date.now()}`,
     };
@@ -47,17 +85,6 @@ exports.createOrder = async (req, res) => {
       return res.status(500).json({ success: false, message: 'Some error occurred with Razorpay' });
     }
 
-    const orderProducts = Array.isArray(items)
-      ? items.map((item) => ({
-          productId: item.productId,
-          name: item.name || 'Product',
-          flavor: item.flavor || 'Default',
-          weight: item.weight || '',
-          quantity: Number(item.quantity) || 1,
-          price: Number(item.price) || 0
-        }))
-      : [];
-
     // Save initial pending order to DB using current Order model shape
     const newOrder = await Order.create({
       orderId: `RZP-${Date.now()}`,
@@ -67,8 +94,8 @@ exports.createOrder = async (req, res) => {
         email: req.body?.customerDetails?.email || 'N/A',
         address: req.body?.customerDetails?.address || 'N/A'
       },
-      products: orderProducts,
-      totalAmount: Number(amount),
+      products: sanitizedProducts,
+      totalAmount: calculatedTotal,
       status: 'pending'
     });
 

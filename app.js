@@ -10,6 +10,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const comboRoutes = require('./routes/comboRoutes');
 
 const Product = require('./models/Product');
 const Order = require('./models/Order');
@@ -100,6 +101,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/combos', comboRoutes);
 
 // Dedicated route for resetting analytics and orders
 app.delete('/api/admin/reset-data', protect, admin, async (req, res) => {

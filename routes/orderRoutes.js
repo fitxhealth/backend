@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const Combo = require('../models/Combo');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 // 1. CREATE A PENDING ORDER (Triggered from Frontend before WhatsApp opens)
@@ -23,30 +24,67 @@ router.post('/', async (req, res) => {
         const sanitizedProducts = [];
 
         for (const item of products) {
-            if (!item.productId || !item.quantity || Number(item.quantity) <= 0) {
+            if (!item.quantity || Number(item.quantity) <= 0) {
                 return res.status(400).json({ success: false, message: 'Invalid order item payload' });
             }
 
-            const product = await Product.findById(item.productId);
-            if (!product) {
-                return res.status(404).json({ success: false, message: `Product not found: ${item.productId}` });
-            }
-
             const qty = Number(item.quantity);
-            const sizeMatch = item.weight
-                ? product.sizes.find((size) => size.weight === item.weight)
-                : null;
-            const unitPrice = sizeMatch ? Number(sizeMatch.price) : Number(product.price);
-
-            totalAmount += unitPrice * qty;
-            sanitizedProducts.push({
-                productId: product._id,
-                name: product.name,
-                flavor: item.flavor || 'Default',
-                weight: item.weight || '',
-                quantity: qty,
-                price: unitPrice
-            });
+            
+            if (item.isCombo && item.comboId) {
+                const combo = await Combo.findById(item.comboId);
+                if (!combo) {
+                    return res.status(404).json({ success: false, message: `Combo not found: ${item.comboId}` });
+                }
+                
+you                // SECURE COMBO PRICING: Calculate price on the backend
+                let comboPrice = 0;
+                if (combo.manualOverridePrice) {
+                    comboPrice = combo.manualOverridePrice;
+                } else {
+                    // Auto-calculate based on DB products
+                    for (let cProduct of combo.products) {
+                        const dbProd = await Product.findById(cProduct.productId);
+                        if (dbProd) {
+                            const basePrice = dbProd.sizes && dbProd.sizes.length > 0 ? dbProd.sizes[0].price : dbProd.price;
+                            comboPrice += basePrice * cProduct.quantity;
+                        }
+                    }
+                }
+                
+                totalAmount += comboPrice * qty;
+                sanitizedProducts.push({
+                    comboId: combo._id,
+                    isCombo: true,
+                    name: combo.comboName,
+                    flavor: item.flavor || 'Premium Bundle',
+                    comboSelections: item.comboSelections || [],
+                    weight: item.weight || '',
+                    quantity: qty,
+                    price: comboPrice
+                });
+            } else if (item.productId) {
+                const product = await Product.findById(item.productId);
+                if (!product) {
+                    return res.status(404).json({ success: false, message: `Product not found: ${item.productId}` });
+                }
+                
+                const sizeMatch = item.weight
+                    ? product.sizes.find((size) => size.weight === item.weight)
+                    : null;
+                const unitPrice = sizeMatch ? Number(sizeMatch.price) : Number(product.price);
+    
+                totalAmount += unitPrice * qty;
+                sanitizedProducts.push({
+                    productId: product._id,
+                    name: product.name,
+                    flavor: item.flavor || 'Default',
+                    weight: item.weight || '',
+                    quantity: qty,
+                    price: unitPrice
+                });
+            } else {
+                return res.status(400).json({ success: false, message: 'Invalid order item: Missing productId or comboId' });
+            }
         }
 
         const newOrder = new Order({
@@ -103,35 +141,75 @@ router.put('/:id/confirm', protect, admin, async (req, res) => {
 
         // Iterate through products to check and deduct specific variant stock
         for (let item of order.products) {
-            const product = await Product.findById(item.productId);
-            if (!product) continue;
+            if (item.isCombo && item.comboId) {
+                // PHASE 2: INVENTORY SYNC FOR COMBOS
+                const combo = await Combo.findById(item.comboId);
+                if (combo) {
+                    const itemsToDeduct = item.comboSelections && item.comboSelections.length > 0 
+                        ? item.comboSelections 
+                        : combo.products.map(p => ({ productId: p.productId, quantity: p.quantity, flavor: null }));
 
-            // Find the exact variant by flavor and weight
-            const variant = product.variants.find(v => v.flavor === item.flavor && v.weight === item.weight);
+                    for (let cItem of itemsToDeduct) {
+                        const product = await Product.findById(cItem.productId);
+                        if (!product) continue;
 
-            if (variant) {
-                // Prevent overselling!
-                if (variant.availableStock < item.quantity) {
-                    return res.status(400).json({
-                        success: false,
-                        message: `Insufficient stock for ${product.name} (${item.flavor} ${item.weight || ''}). Available: ${variant.availableStock}`
-                    });
+                        const deductionQty = item.quantity * cItem.quantity;
+                        
+                        if (cItem.flavor) {
+                            const variant = product.variants ? product.variants.find(v => v.flavor === cItem.flavor) : null;
+                            if (variant && variant.availableStock !== undefined) {
+                                if (variant.availableStock < deductionQty) {
+                                    return res.status(400).json({ success: false, message: `Insufficient stock for combo item: ${product.name} (${cItem.flavor})` });
+                                }
+                                variant.availableStock -= deductionQty;
+                            } else {
+                                if (product.stockLeft < deductionQty) {
+                                    return res.status(400).json({ success: false, message: `Insufficient global stock for combo item: ${product.name}` });
+                                }
+                                product.stockLeft -= deductionQty;
+                            }
+                        } else {
+                            if (product.stockLeft < deductionQty) {
+                                return res.status(400).json({ success: false, message: `Insufficient global stock for combo item: ${product.name}` });
+                            }
+                            product.stockLeft -= deductionQty;
+                        }
+                        product.confirmedSales = Number(product.confirmedSales || 0) + deductionQty;
+                        await product.save();
+                    }
                 }
-                // Deduct stock
-                variant.availableStock -= item.quantity;
-            } else {
-                // Fallback to global stock if variants aren't fully populated yet
-                if (product.stockLeft < item.quantity) {
-                    return res.status(400).json({ success: false, message: `Insufficient global stock for ${product.name}` });
+            } else if (item.productId) {
+                // STANDARD PRODUCT INVENTORY SYNC
+                const product = await Product.findById(item.productId);
+                if (!product) continue;
+
+                // Find the exact variant by flavor and weight (Safeguard against undefined variants array)
+                const variant = product.variants ? product.variants.find(v => v.flavor === item.flavor && v.weight === item.weight) : null;
+
+                if (variant && variant.availableStock !== undefined) {
+                    // Prevent overselling!
+                    if (variant.availableStock < item.quantity) {
+                        return res.status(400).json({
+                            success: false,
+                            message: `Insufficient stock for ${product.name} (${item.flavor} ${item.weight || ''}). Available: ${variant.availableStock}`
+                        });
+                    }
+                    // Deduct stock
+                    variant.availableStock -= item.quantity;
+                } else {
+                    // Fallback to global stock if variants aren't fully populated yet
+                    if (product.stockLeft < item.quantity) {
+                        return res.status(400).json({ success: false, message: `Insufficient global stock for ${product.name}` });
+                    }
+                    product.stockLeft -= item.quantity;
                 }
-                product.stockLeft -= item.quantity;
+
+                // Analytics metrics: confirmed conversion + realized revenue
+                product.confirmedSales = Number(product.confirmedSales || 0) + Number(item.quantity || 0);
+                product.confirmedRevenue = Number(product.confirmedRevenue || 0) + (Number(item.price || 0) * Number(item.quantity || 0));
+
+                await product.save();
             }
-
-            // Analytics metrics: confirmed conversion + realized revenue
-            product.confirmedSales = Number(product.confirmedSales || 0) + Number(item.quantity || 0);
-            product.confirmedRevenue = Number(product.confirmedRevenue || 0) + (Number(item.price || 0) * Number(item.quantity || 0));
-
-            await product.save();
         }
 
         // Mark as confirmed
