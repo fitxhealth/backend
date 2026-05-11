@@ -131,3 +131,64 @@ exports.deleteCombo = async (req, res) => {
         res.status(400).json({ success: false, message: error.message });
     }
 };
+
+// @desc    Get single combo by slug
+// @route   GET /api/combos/slug/:slug
+exports.getComboBySlug = async (req, res) => {
+    try {
+        const combo = await Combo.findOne({ comboSlug: req.params.slug }).populate('products.productId');
+        if (!combo) return res.status(404).json({ success: false, message: 'Combo not found' });
+
+        // Enrichment logic (same as getCombos but for one)
+        let autoMrp = 0, autoPrice = 0, totalGrams = 0;
+        const validProducts = [];
+
+        combo.products.forEach(p => {
+            if (p.productId) {
+                const prod = p.productId;
+                const qty = p.quantity;
+                const basePrice = prod.sizes && prod.sizes.length > 0 ? prod.sizes[0].price : prod.price;
+                const oldPrice = prod.sizes && prod.sizes.length > 0 && prod.sizes[0].oldPrice ? prod.sizes[0].oldPrice : (prod.oldPrice || basePrice);
+                const weightStr = prod.sizes && prod.sizes.length > 0 ? prod.sizes[0].weight : (prod.weight || '');
+
+                autoMrp += oldPrice * qty;
+                autoPrice += basePrice * qty;
+                totalGrams += parseWeightToGrams(weightStr) * qty;
+
+                validProducts.push({
+                    _id: prod._id,
+                    name: prod.name,
+                    quantity: qty,
+                    image: prod.flavors && prod.flavors.length > 0 ? prod.flavors[0].image : '',
+                    price: basePrice
+                });
+            }
+        });
+
+        const finalPrice = combo.manualOverridePrice ? combo.manualOverridePrice : autoPrice;
+        const totalSavings = autoMrp - finalPrice;
+        const displayWeight = totalGrams >= 1000 ? `${(totalGrams / 1000).toFixed(2)}kg` : `${totalGrams}g`;
+
+        const enriched = {
+            _id: combo._id,
+            name: combo.comboName, // Normalize to 'name' for detail page
+            slug: combo.comboSlug, // Normalize to 'slug' for detail page
+            description: combo.description,
+            image: combo.comboBanner || (validProducts[0]?.image || ''),
+            isPublished: combo.isPublished,
+            products: validProducts,
+            price: finalPrice,
+            oldPrice: autoMrp,
+            totalSavings: totalSavings,
+            weight: displayWeight,
+            sizes: combo.sizes || [],
+            images: combo.images && combo.images.length > 0 ? combo.images : [combo.comboBanner].filter(Boolean),
+            flavors: combo.flavors || [],
+            isCombo: true
+        };
+
+        res.status(200).json({ success: true, data: enriched });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
                     return res.status(404).json({ success: false, message: `Combo not found: ${item.comboId}` });
                 }
                 
-you                // SECURE COMBO PRICING: Calculate price on the backend
+                // SECURE COMBO PRICING: Calculate price on the backend
                 let comboPrice = 0;
                 if (combo.manualOverridePrice) {
                     comboPrice = combo.manualOverridePrice;
