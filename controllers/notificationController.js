@@ -7,15 +7,22 @@ exports.createNotification = async (req, res) => {
   try {
     const { email, productId, variantKey } = req.body;
 
-    const product = await Product.findById(productId);
+    let product = await Product.findById(productId);
+    let name = product?.name;
+
     if (!product) {
-      return res.status(404).json({ success: false, message: 'Product not found' });
+      const combo = await require('../models/Combo').findById(productId);
+      if (combo) name = combo.comboName;
+    }
+
+    if (!name) {
+      return res.status(404).json({ success: false, message: 'Item not found' });
     }
 
     const notification = await Notification.create({
       email,
       productId,
-      productName: product.name,
+      productName: name,
       variantKey
     });
 
