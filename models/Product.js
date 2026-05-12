@@ -12,6 +12,7 @@ const ProductSchema = new mongoose.Schema({
   numReviews: { type: Number, default: 0 },
   bestSeller: { type: Boolean, default: false },
   category: { type: String, required: true, enum: ['common', 'unique', 'combos'] },
+  subCategory: { type: String },
   stockLeft: { type: Number, default: 10 },
   showScarcity: { type: Boolean, default: true },
   viewCount: { type: Number, default: 0 },
@@ -19,6 +20,8 @@ const ProductSchema = new mongoose.Schema({
   confirmedRevenue: { type: Number, default: 0 },
   description: { type: String },
   ingredients: { type: String },
+  glutenFree: { type: Boolean, default: false },
+  images: [{ type: String }],
   nutritionalFacts: [String],
   flavors: [
     {
