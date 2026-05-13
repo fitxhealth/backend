@@ -39,7 +39,11 @@ exports.createNotification = async (req, res) => {
 exports.getNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({}).sort({ createdAt: -1 }).lean();
-    res.status(200).json({ success: true, count: notifications.length, data: notifications });
+    const mapped = notifications.map(n => ({
+      ...n,
+      phone: n.phone || 'N/A'
+    }));
+    res.status(200).json({ success: true, count: mapped.length, data: mapped });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
