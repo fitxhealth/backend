@@ -38,7 +38,7 @@ exports.createNotification = async (req, res) => {
 // @route   GET /api/notifications
 exports.getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({}).sort({ createdAt: -1 });
+    const notifications = await Notification.find({}).sort({ createdAt: -1 }).lean();
     res.status(200).json({ success: true, count: notifications.length, data: notifications });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

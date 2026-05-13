@@ -15,6 +15,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 
 const Product = require('./models/Product');
 const Order = require('./models/Order');
+const Notification = require('./models/Notification');
 const { protect, admin } = require('./middleware/authMiddleware');
 
 const app = express();
@@ -110,7 +111,8 @@ app.delete('/api/admin/reset-data', protect, admin, async (req, res) => {
   try {
     await Product.updateMany({}, { $set: { viewCount: 0, confirmedSales: 0, confirmedRevenue: 0 } });
     await Order.deleteMany({});
-    res.status(200).json({ success: true, message: 'Analytics and Orders reset successfully' });
+    await Notification.deleteMany({});
+    res.status(200).json({ success: true, message: 'Analytics, Orders, and Restock Requests reset successfully' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
