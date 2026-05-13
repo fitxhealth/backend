@@ -50,6 +50,7 @@ router.post('/', async (req, res) => {
                     isCombo: true,
                     isCustomCombo: true,
                     name: "STACK LAB™ Custom Stack",
+                    flavor: "Custom Stack",
                     comboSelections: item.comboSelections || [],
                     quantity: qty,
                     price: comboPrice
