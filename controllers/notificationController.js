@@ -5,7 +5,8 @@ const Product = require('../models/Product');
 // @route   POST /api/notifications
 exports.createNotification = async (req, res) => {
   try {
-    const { email, productId, variantKey } = req.body;
+    const { email, phone, productId, variantKey } = req.body;
+    console.log('Notification Request Body:', req.body); // For user to check logs
 
     let product = await Product.findById(productId);
     let name = product?.name;
@@ -20,7 +21,8 @@ exports.createNotification = async (req, res) => {
     }
 
     const notification = await Notification.create({
-      email,
+      email: email.toLowerCase().trim(),
+      phone: (phone || '').trim(),
       productId,
       productName: name,
       variantKey
