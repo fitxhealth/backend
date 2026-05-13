@@ -30,7 +30,31 @@ router.post('/', async (req, res) => {
 
             const qty = Number(item.quantity);
             
-            if (item.isCombo && item.comboId) {
+            if (item.isCustomCombo) {
+                let comboPrice = 0;
+                if (item.comboSelections && item.comboSelections.length > 0) {
+                    for (let cItem of item.comboSelections) {
+                        const dbProd = await Product.findById(cItem.productId);
+                        if (dbProd) {
+                            const basePrice = dbProd.sizes && dbProd.sizes.length > 0 ? dbProd.sizes[0].price : dbProd.price;
+                            comboPrice += basePrice * cItem.quantity;
+                        }
+                    }
+                    comboPrice = Math.max(0, comboPrice - 30); // Securely apply COMBO_DISCOUNT
+                } else {
+                    comboPrice = Number(item.price) || 0; // Fallback
+                }
+                
+                totalAmount += comboPrice * qty;
+                sanitizedProducts.push({
+                    isCombo: true,
+                    isCustomCombo: true,
+                    name: "STACK LAB™ Custom Stack",
+                    comboSelections: item.comboSelections || [],
+                    quantity: qty,
+                    price: comboPrice
+                });
+            } else if (item.isCombo && item.comboId) {
                 const combo = await Combo.findById(item.comboId);
                 if (!combo) {
                     return res.status(404).json({ success: false, message: `Combo not found: ${item.comboId}` });
