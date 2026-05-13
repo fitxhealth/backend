@@ -9,6 +9,10 @@ const notificationSchema = new mongoose.Schema({
       'Please provide a valid email'
     ]
   },
+  phoneNumber: {
+    type: String,
+    required: [true, 'Please provide a phone number']
+  },
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',

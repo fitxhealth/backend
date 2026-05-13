@@ -5,7 +5,7 @@ const Product = require('../models/Product');
 // @route   POST /api/notifications
 exports.createNotification = async (req, res) => {
   try {
-    const { email, phone, productId, variantKey } = req.body;
+    const { email, phoneNumber, productId, variantKey } = req.body;
     console.log('Notification Request Body:', req.body); // For user to check logs
 
     let product = await Product.findById(productId);
@@ -22,7 +22,7 @@ exports.createNotification = async (req, res) => {
 
     const notification = await Notification.create({
       email: email.toLowerCase().trim(),
-      phone: (phone || '').trim(),
+      phoneNumber: (phoneNumber || '').trim(),
       productId,
       productName: name,
       variantKey
@@ -41,7 +41,7 @@ exports.getNotifications = async (req, res) => {
     const notifications = await Notification.find({}).sort({ createdAt: -1 }).lean();
     const mapped = notifications.map(n => ({
       ...n,
-      phone: n.phone || 'N/A'
+      phoneNumber: n.phoneNumber || 'N/A'
     }));
     res.status(200).json({ success: true, count: mapped.length, data: mapped });
   } catch (error) {
