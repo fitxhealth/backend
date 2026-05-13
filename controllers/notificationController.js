@@ -6,7 +6,6 @@ const Product = require('../models/Product');
 exports.createNotification = async (req, res) => {
   try {
     const { email, phoneNumber, productId, variantKey } = req.body;
-    console.log('Notification Request Body:', req.body); // For user to check logs
 
     let product = await Product.findById(productId);
     let name = product?.name;
