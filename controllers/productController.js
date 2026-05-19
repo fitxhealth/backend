@@ -123,6 +123,7 @@ exports.getProductBySlug = async (req, res) => {
 // @route   POST /api/products
 exports.createProduct = async (req, res) => {
   try {
+    // Directly save the exact fields sent from the Admin Panel
     const product = await Product.create(req.body);
     res.status(201).json({ success: true, data: product });
   } catch (error) {
@@ -134,6 +135,7 @@ exports.createProduct = async (req, res) => {
 // @route   PUT /api/products/:id
 exports.updateProduct = async (req, res) => {
   try {
+    // Directly update the exact fields sent from the Admin Panel
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
@@ -141,6 +143,7 @@ exports.updateProduct = async (req, res) => {
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
     res.status(200).json({ success: true, data: product });
   } catch (error) {
+    console.error('Update Product Error:', error);
     res.status(400).json({ success: false, message: error.message });
   }
 };

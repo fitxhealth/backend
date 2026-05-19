@@ -31,7 +31,9 @@ exports.getCombos = async (req, res) => {
         
         const filter = isAdmin ? {} : { isPublished: true };
 
-        const combos = await Combo.find(filter).populate('products.productId');
+        const combos = await Combo.find(filter)
+            .populate('products.productId')
+            .populate('comboGroups.products.productId');
 
         // Map and dynamically calculate real-time savings/prices based on current product data
         const enrichedCombos = combos.map(combo => {
@@ -59,10 +61,37 @@ exports.getCombos = async (req, res) => {
                         name: prod.name,
                         quantity: qty,
                         image: prod.flavors && prod.flavors.length > 0 ? prod.flavors[0].image : '',
-                        price: basePrice
+                        price: basePrice,
+                        flavors: prod.flavors || [],
+                        sizes: prod.sizes || []
                     });
                 }
             });
+
+            // Also calculate default pricing from comboGroups if present
+            if (combo.comboGroups && combo.comboGroups.length > 0) {
+                combo.comboGroups.forEach(group => {
+                    if (group.products && group.products.length > 0) {
+                        const defaultEntry = group.products[0];
+                        const defaultProd = defaultEntry.productId;
+                        if (defaultProd) {
+                            const qty = defaultEntry.quantity || 1;
+                            // Use fixedWeight if specified, else first size
+                            const selectedSize = defaultEntry.fixedWeight 
+                                ? defaultProd.sizes?.find(s => s.weight === defaultEntry.fixedWeight)
+                                : defaultProd.sizes?.[0];
+
+                            const basePrice = selectedSize ? selectedSize.price : defaultProd.price;
+                            const oldPrice = selectedSize?.oldPrice || defaultProd.oldPrice || basePrice;
+                            const weightStr = selectedSize ? selectedSize.weight : (defaultProd.weight || '');
+                            
+                            autoMrp += oldPrice * qty;
+                            autoPrice += basePrice * qty;
+                            totalGrams += parseWeightToGrams(weightStr) * qty;
+                        }
+                    }
+                });
+            }
 
             const finalPrice = combo.manualOverridePrice ? combo.manualOverridePrice : autoPrice;
             const totalSavings = autoMrp - finalPrice;
@@ -84,7 +113,9 @@ exports.getCombos = async (req, res) => {
                 totalWeight: { grams: totalGrams, display: displayWeight },
                 sizes: combo.sizes || [],
                 images: combo.images || [],
-                flavors: combo.flavors || []
+                flavors: combo.flavors || [],
+                comboGroups: combo.comboGroups || [],
+                comboImages: combo.comboImages ? Object.fromEntries(combo.comboImages) : {}
             };
         });
 
@@ -136,7 +167,9 @@ exports.deleteCombo = async (req, res) => {
 // @route   GET /api/combos/slug/:slug
 exports.getComboBySlug = async (req, res) => {
     try {
-        const combo = await Combo.findOne({ comboSlug: req.params.slug }).populate('products.productId');
+        const combo = await Combo.findOne({ comboSlug: req.params.slug })
+            .populate('products.productId')
+            .populate('comboGroups.products.productId');
         if (!combo) return res.status(404).json({ success: false, message: 'Combo not found' });
 
         // Enrichment logic (same as getCombos but for one)
@@ -160,10 +193,35 @@ exports.getComboBySlug = async (req, res) => {
                     name: prod.name,
                     quantity: qty,
                     image: prod.flavors && prod.flavors.length > 0 ? prod.flavors[0].image : '',
-                    price: basePrice
+                    price: basePrice,
+                    flavors: prod.flavors || [],
+                    sizes: prod.sizes || []
                 });
             }
         });
+
+        if (combo.comboGroups && combo.comboGroups.length > 0) {
+            combo.comboGroups.forEach(group => {
+                if (group.products && group.products.length > 0) {
+                    const defaultEntry = group.products[0];
+                    const defaultProd = defaultEntry.productId;
+                    if (defaultProd) {
+                        const qty = defaultEntry.quantity || 1;
+                        const selectedSize = defaultEntry.fixedWeight 
+                            ? defaultProd.sizes?.find(s => s.weight === defaultEntry.fixedWeight)
+                            : defaultProd.sizes?.[0];
+
+                        const basePrice = defaultEntry.customPrice != null ? defaultEntry.customPrice : (selectedSize ? selectedSize.price : defaultProd.price);
+                        const oldPrice = selectedSize?.oldPrice || defaultProd.oldPrice || basePrice;
+                        const weightStr = selectedSize ? selectedSize.weight : (defaultProd.weight || '');
+                        
+                        autoMrp += oldPrice * qty;
+                        autoPrice += basePrice * qty;
+                        totalGrams += parseWeightToGrams(weightStr) * qty;
+                    }
+                }
+            });
+        }
 
         const finalPrice = combo.manualOverridePrice ? combo.manualOverridePrice : autoPrice;
         const totalSavings = autoMrp - finalPrice;
@@ -184,6 +242,8 @@ exports.getComboBySlug = async (req, res) => {
             sizes: combo.sizes || [],
             images: combo.images && combo.images.length > 0 ? combo.images : [combo.comboBanner].filter(Boolean),
             flavors: combo.flavors || [],
+            comboGroups: combo.comboGroups || [],
+            comboImages: combo.comboImages ? Object.fromEntries(combo.comboImages) : {},
             isCombo: true
         };
 

@@ -44,11 +44,22 @@ exports.createOrder = async (req, res) => {
           if (combo) {
             let comboPrice = combo.manualOverridePrice || 0;
             if (!combo.manualOverridePrice) {
-              for (let cProd of combo.products) {
-                const dbProd = await Product.findById(cProd.productId);
-                if (dbProd) {
-                  const basePrice = dbProd.sizes?.length > 0 ? dbProd.sizes[0].price : dbProd.price;
-                  comboPrice += basePrice * cProd.quantity;
+              if (item.comboSelections && item.comboSelections.length > 0) {
+                for (let sel of item.comboSelections) {
+                  const dbProd = await Product.findById(sel.productId);
+                  if (dbProd) {
+                    const sizeMatch = sel.weight ? dbProd.sizes.find(s => s.weight === sel.weight) : null;
+                    const basePrice = sizeMatch ? sizeMatch.price : (dbProd.sizes?.length > 0 ? dbProd.sizes[0].price : dbProd.price);
+                    comboPrice += basePrice * (sel.quantity || 1);
+                  }
+                }
+              } else {
+                for (let cProd of combo.products) {
+                  const dbProd = await Product.findById(cProd.productId);
+                  if (dbProd) {
+                    const basePrice = dbProd.sizes?.length > 0 ? dbProd.sizes[0].price : dbProd.price;
+                    comboPrice += basePrice * cProd.quantity;
+                  }
                 }
               }
             }
