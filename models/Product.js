@@ -14,6 +14,7 @@ const ProductSchema = new mongoose.Schema({
   category: { type: String, required: true, enum: ['common', 'unique', 'combos'] },
   subCategory: { type: String },
   stockLeft: { type: Number, default: 10 },
+  scarcity: { type: Number, default: 0 },
   showScarcity: { type: Boolean, default: true },
   viewCount: { type: Number, default: 0 },
   confirmedSales: { type: Number, default: 0 },
@@ -26,7 +27,7 @@ const ProductSchema = new mongoose.Schema({
   flavors: [
     {
       name: { type: String, required: true },
-      image: { type: String, required: true },
+      image: { type: String, default: '' },
       inStock: { type: Boolean, default: true }
     }
   ],
