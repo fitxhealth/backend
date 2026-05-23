@@ -1,3 +1,4 @@
+/* global fetch */
 const Product = require('../models/Product');
 
 /**
@@ -118,6 +119,7 @@ Rules:
     try {
       parsedResult = JSON.parse(resultText);
     } catch (e) {
+      console.error(e);
       return res.status(500).json({ success: false, message: 'Failed to parse AI recommendation.' });
     }
 
