@@ -251,7 +251,36 @@ Instructions:
     const enrichedRecs = (parsed.recommendations || []).map(r => {
       const prod = productMap[r.productId];
       if (!prod) return r;
-      const image = (prod.images && prod.images[0]) || '';
+
+      // Resolve image: flavors image first, then prod.images[0], then fallback to slug-based image
+      let image = '';
+      if (prod.flavors && prod.flavors.length > 0) {
+        const matchingFlavor = prod.flavors.find(f => f.name && f.name.toLowerCase() === (r.flavor || '').toLowerCase());
+        if (matchingFlavor && matchingFlavor.image) {
+          image = matchingFlavor.image;
+        } else if (prod.flavors[0] && prod.flavors[0].image) {
+          image = prod.flavors[0].image;
+        }
+      }
+
+      if (!image && prod.images && prod.images.length > 0) {
+        image = prod.images[0];
+      }
+
+      if (!image) {
+        image = `/images/${prod.slug}.webp`;
+      }
+
+      // Ensure relative image paths start with a leading slash to prevent routing issues
+      if (image && !image.startsWith('http') && !image.startsWith('/')) {
+        image = '/' + image;
+      }
+
+      // Ensure .png extensions are converted to .webp (matching the frontend's format)
+      if (image && !image.startsWith('http')) {
+        image = image.replace(/\.png$/i, '.webp');
+      }
+
       // Get price for selected size if possible
       const sizeData = (prod.sizes || []).find(s => s.weight === r.size);
       const price = sizeData ? sizeData.price : prod.price;
