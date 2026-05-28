@@ -22,6 +22,10 @@ const ProductSchema = new mongoose.Schema({
   description: { type: String },
   ingredients: { type: String },
   glutenFree: { type: Boolean, default: false },
+  isBulking: { type: Boolean, default: false },
+  isMuscle: { type: Boolean, default: false },
+  isFatLoss: { type: Boolean, default: false },
+  isStack: { type: Boolean, default: false },
   images: [{ type: String }],
   nutritionalFacts: [String],
   flavors: [

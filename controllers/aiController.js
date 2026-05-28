@@ -133,3 +133,134 @@ Rules:
     res.status(500).json({ success: false, message: 'Server error processing AI request.' });
   }
 };
+
+/**
+ * Handle POST /api/ai/chat-recommend
+ * Recommends individual products based on user's natural language query.
+ * Returns a conversational response + structured product recommendations.
+ * If the goal is best served by a combo/stack, sets suggestStackLab=true.
+ */
+exports.chatRecommend = async (req, res) => {
+  try {
+    const { query } = req.body;
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Please describe your fitness goal.' });
+    }
+    if (query.length > 500) {
+      return res.status(400).json({ success: false, message: 'Query too long. Please keep it under 500 characters.' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ success: false, message: 'AI configuration is missing on the server.' });
+    }
+
+    // 1. Fetch all available products
+    const products = await Product.find({ category: { $in: ['common', 'unique'] } }).lean();
+
+    // 2. Build a compact catalog for the AI prompt
+    const catalog = products.map(p => {
+      const inStockFlavors = (p.flavors || []).filter(f => f.inStock !== false).map(f => f.name);
+      const inStockSizes = (p.sizes || []).filter(s => s.inStock !== false).map(s => ({ weight: s.weight, price: s.price }));
+      const variantFlavors = [...new Set((p.variants || []).filter(v => (v.availableStock || 0) > 0).map(v => v.flavor))];
+      const availableFlavors = variantFlavors.length > 0 ? variantFlavors : inStockFlavors;
+
+      return {
+        id: p._id.toString(),
+        slug: p.slug,
+        name: p.name,
+        subCategory: p.subCategory || p.category,
+        price: p.price,
+        isBulking: p.isBulking,
+        isMuscle: p.isMuscle,
+        isFatLoss: p.isFatLoss,
+        availableFlavors: availableFlavors.slice(0, 6),
+        sizes: inStockSizes.slice(0, 4)
+      };
+    });
+
+    // 3. Build the system prompt
+    const systemPrompt = `You are an expert sports nutritionist and supplement advisor for Living Result — a premium Indian supplement store.
+The user has described their fitness goal. Your task is to recommend the best individual products from the catalog below.
+
+User goal: "${query}"
+
+Product Catalog (JSON):
+${JSON.stringify(catalog, null, 2)}
+
+Instructions:
+1. Recommend 1 to 3 products from the catalog that best match the user's goal.
+2. Write a friendly, motivating, conversational message (2-3 sentences) explaining your recommendation. Use "you" and be encouraging. Do NOT use markdown, bullet points, or headers in the message.
+3. For each recommended product, select one flavor from its availableFlavors list (pick the most popular or universally liked, e.g. "Chocolate" or "Unflavored"). If no flavors available, use "Regular".
+4. For each recommended product, select the best size (typically the 1kg or mid-range option). If no sizes available, use "Standard".
+5. Set suggestStackLab to true ONLY if the user's goal would strongly benefit from a custom combination of products (e.g. they mention wanting both a protein AND a performance boost, or they specifically ask about "combo", "stack", or "bundle").
+6. Return ONLY valid JSON in exactly this schema:
+{
+  "message": "Your conversational recommendation message here.",
+  "recommendations": [
+    { "productId": "MongoDB id string", "productSlug": "slug string", "productName": "name", "flavor": "selected flavor", "size": "selected size", "reason": "1 short sentence why this product specifically" }
+  ],
+  "suggestStackLab": false
+}`;
+
+    // 4. Call Gemini API
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
+        generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Gemini API Error (chatRecommend):', errorText);
+      return res.status(502).json({ success: false, message: 'AI service is temporarily unavailable. Please try again shortly.' });
+    }
+
+    const aiData = await response.json();
+    const resultText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!resultText) {
+      return res.status(500).json({ success: false, message: 'Invalid response from AI model.' });
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(resultText);
+    } catch (e) {
+      console.error('chatRecommend JSON parse error:', e);
+      return res.status(500).json({ success: false, message: 'Failed to parse AI recommendation.' });
+    }
+
+    // 5. Enrich recommendations with product images and prices from DB
+    const recProductIds = (parsed.recommendations || []).map(r => r.productId);
+    const recProducts = await Product.find({ _id: { $in: recProductIds } }).lean();
+    const productMap = {};
+    recProducts.forEach(p => { productMap[p._id.toString()] = p; });
+
+    const enrichedRecs = (parsed.recommendations || []).map(r => {
+      const prod = productMap[r.productId];
+      if (!prod) return r;
+      const image = (prod.images && prod.images[0]) || '';
+      // Get price for selected size if possible
+      const sizeData = (prod.sizes || []).find(s => s.weight === r.size);
+      const price = sizeData ? sizeData.price : prod.price;
+      return { ...r, image, price };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        message: parsed.message || '',
+        recommendations: enrichedRecs,
+        suggestStackLab: !!parsed.suggestStackLab
+      }
+    });
+
+  } catch (error) {
+    console.error('chatRecommend Error:', error);
+    res.status(500).json({ success: false, message: 'Server error processing AI recommendation.' });
+  }
+};
