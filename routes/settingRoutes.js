@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getSettings, updateSettings, getSiteVersion, incrementSiteVersion } = require('../controllers/settingController');
+const { getSettings, updateSettings, getSiteVersion, incrementSiteVersion, syncSheetsToGoogle } = require('../controllers/settingController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 router.route('/version')
@@ -8,6 +8,9 @@ router.route('/version')
 
 router.route('/version/increment')
     .put(protect, admin, incrementSiteVersion);
+
+router.route('/sync-sheets')
+    .post(protect, admin, syncSheetsToGoogle);
 
 router.route('/')
     .get(getSettings)

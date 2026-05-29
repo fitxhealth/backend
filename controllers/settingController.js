@@ -74,3 +74,42 @@ exports.incrementSiteVersion = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
+
+// @desc    Sync data to Google Sheets
+// @route   POST /api/settings/sync-sheets
+// @access  Private (Admin)
+exports.syncSheetsToGoogle = async (req, res) => {
+    try {
+        const { googleWebAppUrl, payload } = req.body;
+        if (!googleWebAppUrl) {
+            return res.status(400).json({ success: false, message: 'Google Web App URL is required' });
+        }
+        if (!payload) {
+            return res.status(400).json({ success: false, message: 'Payload is required' });
+        }
+
+        console.info('Forwarding sync request to Google Sheets...');
+        const response = await fetch(googleWebAppUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            data = { text };
+        }
+
+        if (response.ok) {
+            res.status(200).json({ success: true, data });
+        } else {
+            res.status(response.status).json({ success: false, message: 'Google Sheets returned an error', error: data });
+        }
+    } catch (error) {
+        console.error('Google Sheets sync error:', error);
+        res.status(500).json({ success: false, message: 'Server Error during Google Sheets sync', error: error.message });
+    }
+};
