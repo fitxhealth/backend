@@ -1,4 +1,5 @@
 const Setting = require('../models/Setting');
+const axios = require('axios');
 
 // @desc    Get all settings
 // @route   GET /api/settings
@@ -88,28 +89,20 @@ exports.syncSheetsToGoogle = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Payload is required' });
         }
 
-        console.info('Forwarding sync request to Google Sheets...');
-        const response = await fetch(googleWebAppUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        console.info('Forwarding sync request to Google Sheets via Axios...');
+        const response = await axios.post(googleWebAppUrl, payload, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
-        const text = await response.text();
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            data = { text };
-        }
-
-        if (response.ok) {
-            res.status(200).json({ success: true, data });
-        } else {
-            res.status(response.status).json({ success: false, message: 'Google Sheets returned an error', error: data });
-        }
+        res.status(200).json({ success: true, data: response.data });
     } catch (error) {
-        console.error('Google Sheets sync error:', error);
-        res.status(500).json({ success: false, message: 'Server Error during Google Sheets sync', error: error.message });
+        console.error('Google Sheets sync error:', error.message || error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Server Error during Google Sheets sync', 
+            error: error.response ? error.response.data : error.message 
+        });
     }
 };
