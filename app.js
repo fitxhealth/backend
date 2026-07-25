@@ -13,6 +13,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const comboRoutes = require('./routes/comboRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const aiRoutes = require('./routes/aiRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const Product = require('./models/Product');
 const Order = require('./models/Order');
@@ -107,6 +108,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/combos', comboRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/user', userRoutes);
 
 // Dedicated route for resetting analytics and orders
 app.delete('/api/admin/reset-data', protect, admin, async (req, res) => {

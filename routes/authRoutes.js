@@ -1,11 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const { signup, login, getMe, logout } = require('../controllers/authController');
+const {
+  sendOtp,
+  verifyOtp,
+  logout,
+  getMe,
+  adminLogin,
+} = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
-router.post('/signup', signup);
-router.post('/login', login);
+// ── Customer OTP Auth ─────────────────────────────────────────────────────────
+router.post('/send-otp', sendOtp);
+router.post('/verify-otp', verifyOtp);
 router.post('/logout', logout);
 router.get('/me', protect, getMe);
+
+// ── Legacy Admin Login (password-based, kept for admin panel) ─────────────────
+router.post('/login', adminLogin);
 
 module.exports = router;
