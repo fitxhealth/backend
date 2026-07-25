@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // Using native fetch built into Node.js
 
 async function testProduction() {

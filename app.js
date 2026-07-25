@@ -85,7 +85,7 @@ app.get('/sitemap.xml', async (req, res) => {
     xml += `</urlset>`;
     res.header('Content-Type', 'application/xml');
     res.send(xml);
-  } catch (error) {
+  } catch (_error) {
     res.status(500).send('Error generating sitemap');
   }
 });

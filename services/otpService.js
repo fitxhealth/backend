@@ -82,7 +82,7 @@ async function sendPhoneOtp(phone, otp) {
     }
   } catch (err) {
     console.error('[otpService] MSG91 request failed:', err.message);
-    throw new Error('Failed to send SMS OTP. Please try again.');
+    throw new Error('Failed to send SMS OTP. Please try again.', { cause: err });
   }
 }
 

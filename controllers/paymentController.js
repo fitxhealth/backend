@@ -29,7 +29,7 @@ const getRazorpayInstance = () => {
 exports.createOrder = async (req, res) => {
   try {
     if (!ensureRazorpayEnabled(res)) return;
-    const { amount, items } = req.body;
+    const { items } = req.body;
 
     // SECURE PRICING: Calculate total on the backend
     let calculatedTotal = 0;
