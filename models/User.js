@@ -67,6 +67,8 @@ const UserSchema = new mongoose.Schema(
       default: 'customer',
     },
 
+    password: { type: String },
+
     isActive: { type: Boolean, default: true },
 
     // AI Profile — schema prepared, UI hidden
