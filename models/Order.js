@@ -6,13 +6,7 @@ const orderSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  // Linked customer — null for guest checkouts
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Customer',
-    default: null,
-    index: true,
-  },
+
   customerDetails: {
     name: { type: String, required: true },
     phone: { type: String, required: true },
@@ -44,11 +38,7 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'confirmed', 'packed', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   },
-  // Rewards architecture — not active yet. Flips to true once reward points are credited.
-  rewardProcessed: {
-    type: Boolean,
-    default: false,
-  }
+
 }, { timestamps: true });
 
 // Add Partial TTL Index to automatically delete pending/cancelled orders after 80 hours

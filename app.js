@@ -6,15 +6,11 @@ const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const comboRoutes = require('./routes/comboRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
-const aiRoutes = require('./routes/aiRoutes');
-const userRoutes = require('./routes/userRoutes');
-
 const Product = require('./models/Product');
 const Order = require('./models/Order');
 const Notification = require('./models/Notification');
@@ -25,9 +21,9 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5500',
   'http://127.0.0.1:5500',
-  'https://www.getlivingresult.in',
-  'https://getlivingresult.in',
-  process.env.FRONTEND_URL || 'https://living-resultm.vercel.app'
+  'https://www.getfitxhealth.in',
+  'https://getfitxhealth.in',
+  process.env.FRONTEND_URL || 'https://fitx-healthm.vercel.app'
 ];
 
 app.use(helmet({
@@ -71,7 +67,7 @@ app.use(rateLimit({
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const products = await Product.find({}).select('slug');
-    const baseUrl = 'https://www.getlivingresult.in';
+    const baseUrl = 'https://www.getfitxhealth.in';
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
@@ -103,14 +99,11 @@ const authLimiter = rateLimit({
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/payment', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/combos', comboRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/user', userRoutes);
 
 // Dedicated route for resetting analytics and orders
 app.delete('/api/admin/reset-data', protect, admin, async (req, res) => {

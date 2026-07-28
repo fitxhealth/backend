@@ -3,7 +3,7 @@ require('dotenv').config(); // Load environment variables from .env
 const Product = require('./models/Product');
 
 // Make sure to replace this with your actual MongoDB URI if you use MongoDB Atlas!
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/livingresult';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/fitxhealth';
 
 // Helper function to create URL-friendly slugs (e.g., "Hulk Mass Gainer" -> "hulk-mass-gainer")
 const generateSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
