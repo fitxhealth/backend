@@ -37,6 +37,9 @@ exports.getPublicSettings = async (req, res) => {
             fomo: settingsObject.fomo || { socialProof: true, exitIntent: true, scarcity: true, timerDuration: 600 }
         };
         
+        // Cache this endpoint for 15s to absorb massive traffic spikes.
+        // Frontend polling for version updates every 15s means this is perfectly safe.
+        res.set('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=30');
         res.status(200).json({ success: true, data: safeData });
     } catch {
         res.status(500).json({ success: false, message: 'Server Error' });
