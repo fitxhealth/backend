@@ -135,11 +135,11 @@ router.get('/recent', async (req, res) => {
             .limit(8);
         
         const recentOrders = orders.map(o => {
-            const firstName = o.customerDetails?.name?.split(' ')[0] || 'Someone';
             const productName = o.products && o.products.length > 0 ? o.products[0].name : 'some items';
-            return `${firstName} just secured ${productName}`;
+            return `A customer recently purchased ${productName}`;
         });
 
+        res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
         res.status(200).json({ success: true, data: recentOrders });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
