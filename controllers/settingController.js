@@ -1,9 +1,10 @@
 const Setting = require('../models/Setting');
 const axios = require('axios');
+const crypto = require('crypto');
 
 // @desc    Get all settings
 // @route   GET /api/settings
-// @access  Public
+// @access  Private (Admin)
 exports.getSettings = async (req, res) => {
     try {
         const settingsArray = await Setting.find({});
@@ -18,6 +19,29 @@ exports.getSettings = async (req, res) => {
     }
 };
 
+// @desc    Get safe public settings
+// @route   GET /api/public/settings
+// @access  Public
+exports.getPublicSettings = async (req, res) => {
+    try {
+        const settingsArray = await Setting.find({ key: { $in: ['noticeStrip', 'isLaunched', 'fomo'] } });
+        const settingsObject = settingsArray.reduce((acc, setting) => {
+            acc[setting.key] = setting.value;
+            return acc;
+        }, {});
+        
+        // Ensure defaults if not present
+        const safeData = {
+            noticeStrip: settingsObject.noticeStrip || { enabled: false, text: '' },
+            isLaunched: settingsObject.isLaunched !== undefined ? settingsObject.isLaunched : true,
+            fomo: settingsObject.fomo || { socialProof: true, exitIntent: true, scarcity: true, timerDuration: 600 }
+        };
+        
+        res.status(200).json({ success: true, data: safeData });
+    } catch {
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
 // @desc    Update settings
 // @route   PUT /api/settings
 // @access  Private (Admin)
@@ -53,7 +77,9 @@ exports.getSiteVersion = async (req, res) => {
     try {
         const versionSetting = await Setting.findOne({ key: 'siteVersion' });
         const version = versionSetting ? versionSetting.value : 1;
-        res.status(200).json({ success: true, version });
+        // Obfuscate the version to avoid leaking deployment cycle info (e.g. 87)
+        const obfuscatedVersion = crypto.createHash('sha256').update(version.toString()).digest('hex').substring(0, 8);
+        res.status(200).json({ success: true, version: obfuscatedVersion });
     } catch {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
