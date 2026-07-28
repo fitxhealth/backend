@@ -30,7 +30,9 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || 'https://living-resultm.vercel.app'
 ];
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use((req, res, next) => {
   const start = Date.now();
