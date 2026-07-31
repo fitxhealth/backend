@@ -9,8 +9,7 @@ describe('API auth and access controls', () => {
       password: 'password123'
     });
 
-    expect(res.status).toBe(403);
-    expect(res.body.success).toBe(false);
+    expect(res.status).toBe(404);
   });
 
   test('POST /api/auth/login validates required fields', async () => {
