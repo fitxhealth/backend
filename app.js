@@ -19,11 +19,14 @@ const { protect, admin } = require('./middleware/authMiddleware');
 const app = express();
 
 const allowedOrigins = [
+  'http://localhost:3000',
   'http://localhost:5500',
   'http://127.0.0.1:5500',
   'https://www.getfitxhealth.in',
   'https://getfitxhealth.in',
-  process.env.FRONTEND_URL || 'https://fitx-healthm.vercel.app'
+  'https://frontend-one-theta-4rmksk9xw1.vercel.app',
+  'https://frontend-fixhealth.vercel.app',
+  process.env.FRONTEND_URL || 'https://frontend-one-theta-4rmksk9xw1.vercel.app'
 ];
 
 app.use(helmet({
