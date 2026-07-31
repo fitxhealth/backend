@@ -56,9 +56,6 @@ const ProductSchema = new mongoose.Schema({
   ],
   // ------------------------------------
 
-  // Rewards architecture — admin configures points per product, not active yet
-  rewardPoints: { type: Number, default: 0 },
-
   reviewList: [
     {
       name: { type: String, required: true },
