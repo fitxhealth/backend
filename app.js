@@ -22,8 +22,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5500',
   'http://127.0.0.1:5500',
-  'https://www.getfitxhealth.in',
-  'https://getfitxhealth.in',
+  'https://www.fitxhealth.in',
+  'https://fitxhealth.in',
   'https://frontend-one-theta-4rmksk9xw1.vercel.app',
   'https://frontend-fixhealth.vercel.app',
   process.env.FRONTEND_URL || 'https://frontend-one-theta-4rmksk9xw1.vercel.app'
@@ -70,7 +70,7 @@ app.use(rateLimit({
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const products = await Product.find({}).select('slug');
-    const baseUrl = 'https://www.getfitxhealth.in';
+    const baseUrl = 'https://www.fitxhealth.in';
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
