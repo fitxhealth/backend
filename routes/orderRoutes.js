@@ -112,6 +112,34 @@ router.post('/', async (req, res) => {
             }
         }
 
+        const { PUJA_OFFER } = require('../config/promoConfig');
+        if (PUJA_OFFER && PUJA_OFFER.enabled) {
+            if (totalAmount >= PUJA_OFFER.shakerBagThreshold) {
+                sanitizedProducts.push({
+                    name: '🎁 Free Premium Shaker',
+                    flavor: 'Promo',
+                    weight: '',
+                    quantity: 1,
+                    price: 0
+                });
+                sanitizedProducts.push({
+                    name: '🎁 Free Gym Bag',
+                    flavor: 'Promo',
+                    weight: '',
+                    quantity: 1,
+                    price: 0
+                });
+            } else if (totalAmount >= PUJA_OFFER.shakerThreshold) {
+                sanitizedProducts.push({
+                    name: '🎁 Free Premium Shaker',
+                    flavor: 'Promo',
+                    weight: '',
+                    quantity: 1,
+                    price: 0
+                });
+            }
+        }
+
         const newOrder = new Order({
             orderId,
             customerDetails,
