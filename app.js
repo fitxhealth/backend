@@ -66,6 +66,9 @@ app.use(rateLimit({
   legacyHeaders: false
 }));
 
+// HEALTH ENDPOINT FOR AWS LAMBDA TESTING
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() }));
+
 // DYNAMIC SITEMAP.XML
 app.get('/sitemap.xml', async (req, res) => {
   try {
